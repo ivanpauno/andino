@@ -103,6 +103,8 @@ unsigned long nextPID = PID_INTERVAL;
 #define AUTO_STOP_INTERVAL 3000
 long lastMotorCommand = AUTO_STOP_INTERVAL;
 
+bool HAS_IMU = true;
+
 /* Variable initialization */
 
 // A pair of varibles to help parse serial commands
@@ -251,38 +253,44 @@ int runCommand() {
       Serial.println(pid_args[3]);
       Serial.println("OK");
       break;
-    case READ_IMU:
+    case HAVE_IMU:
+      Serial.println(HAS_IMU);   
+      break;
+    case READ_ENCODERS_AND_IMU:
      { 
+      Serial.print(left_encoder.read());
+      Serial.print(" ");
+      Serial.print(right_encoder.read());
+      Serial.print(" ");
       // Quaternion data
       imu::Quaternion quat = bno.getQuat();
-      Serial.print("qW: ");
-      Serial.print(quat.w(), 4);
-      Serial.print(" qX: ");
       Serial.print(quat.x(), 4);
-      Serial.print(" qY: ");
+      Serial.print(" ");
       Serial.print(quat.y(), 4);
-      Serial.print(" qZ: ");
+      Serial.print(" ");
       Serial.print(quat.z(), 4);
-      Serial.print("\t\t");
-
-      /* Display the floating point data */
-      imu::Vector<3> euler_linearaccel = bno.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL);
-      Serial.print("X: ");
-      Serial.print(euler_linearaccel.x());
-      Serial.print(" Y: ");
-      Serial.print(euler_linearaccel.y());
-      Serial.print(" Z: ");
-      Serial.print(euler_linearaccel.z());
-      Serial.print("\t\t");
+      Serial.print(" ");
+      Serial.print(quat.w(), 4);
+      Serial.print(" ");
 
       /* Display the floating point data */
       imu::Vector<3> euler_angvel = bno.getVector(Adafruit_BNO055::VECTOR_GYROSCOPE);
-      Serial.print("X: ");
       Serial.print(euler_angvel.x());
-      Serial.print(" Y: ");
+      Serial.print(" ");
       Serial.print(euler_angvel.y());
-      Serial.print(" Z: ");
+      Serial.print(" ");
       Serial.print(euler_angvel.z());
+      Serial.print(" ");
+
+      /* Display the floating point data */
+      imu::Vector<3> euler_linearaccel = bno.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL);
+      Serial.print(euler_linearaccel.x());
+      Serial.print(" ");
+      Serial.print(euler_linearaccel.y());
+      Serial.print(" ");
+      Serial.print(euler_linearaccel.z());
+      Serial.print("\t\t");
+
       Serial.println("OK");
      }
       break;
@@ -311,6 +319,7 @@ void setup() {
   {
     /* There was a problem detecting the BNO055 ... check your connections */
     Serial.print("Ooops, no BNO055 detected ... Check your wiring or I2C ADDR!");
+    HAS_IMU = false;
   }
   bno.setExtCrystalUse(true);
 }
