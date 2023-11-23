@@ -81,5 +81,6 @@
 #define UPDATE_PID     'u'
 #define DIGITAL_WRITE  'w'
 #define ANALOG_WRITE   'x'
+#define READ_IMU       'i'
 
 #endif

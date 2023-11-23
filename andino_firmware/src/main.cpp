@@ -83,6 +83,12 @@
 /* PID parameters and functions */
 #include "pid.h"
 
+/*BNO055 Imu  */
+#include <Wire.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_BNO055.h>
+#include <utility/imumaths.h>
+
 /* Run the PID loop at 30 times per second */
 #define PID_RATE 30  // Hz
 
@@ -130,6 +136,10 @@ andino::PID right_pid_controller(30, 10, 0, 10, -MAX_PWM, MAX_PWM);
 // TODO(jballoffet): Make these objects local to the main function.
 andino::Encoder left_encoder(LEFT_ENCODER_A_GPIO_PIN, LEFT_ENCODER_B_GPIO_PIN);
 andino::Encoder right_encoder(RIGHT_ENCODER_A_GPIO_PIN, RIGHT_ENCODER_B_GPIO_PIN);
+
+// Check I2C device address and correct line below (by default address is 0x29 or 0x28)
+//                                   id, address
+Adafruit_BNO055 bno = Adafruit_BNO055(55, BNO055_ADDRESS_A, &Wire);
 
 /* Clear the current command parameters */
 void resetCommand() {
@@ -241,6 +251,41 @@ int runCommand() {
       Serial.println(pid_args[3]);
       Serial.println("OK");
       break;
+    case READ_IMU:
+     { 
+      // Quaternion data
+      imu::Quaternion quat = bno.getQuat();
+      Serial.print("qW: ");
+      Serial.print(quat.w(), 4);
+      Serial.print(" qX: ");
+      Serial.print(quat.x(), 4);
+      Serial.print(" qY: ");
+      Serial.print(quat.y(), 4);
+      Serial.print(" qZ: ");
+      Serial.print(quat.z(), 4);
+      Serial.print("\t\t");
+
+      /* Display the floating point data */
+      imu::Vector<3> euler_linearaccel = bno.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL);
+      Serial.print("X: ");
+      Serial.print(euler_linearaccel.x());
+      Serial.print(" Y: ");
+      Serial.print(euler_linearaccel.y());
+      Serial.print(" Z: ");
+      Serial.print(euler_linearaccel.z());
+      Serial.print("\t\t");
+
+      /* Display the floating point data */
+      imu::Vector<3> euler_angvel = bno.getVector(Adafruit_BNO055::VECTOR_GYROSCOPE);
+      Serial.print("X: ");
+      Serial.print(euler_angvel.x());
+      Serial.print(" Y: ");
+      Serial.print(euler_angvel.y());
+      Serial.print(" Z: ");
+      Serial.print(euler_angvel.z());
+      Serial.println("OK");
+     }
+      break;
     default:
       Serial.println("Invalid Command");
       break;
@@ -260,6 +305,14 @@ void setup() {
 
   left_pid_controller.reset(left_encoder.read());
   right_pid_controller.reset(right_encoder.read());
+
+  /* Initialise the IMU sensor */
+  if(!bno.begin())
+  {
+    /* There was a problem detecting the BNO055 ... check your connections */
+    Serial.print("Ooops, no BNO055 detected ... Check your wiring or I2C ADDR!");
+  }
+  bno.setExtCrystalUse(true);
 }
 
 /* Enter the main loop.  Read and parse input from the serial port
@@ -267,6 +320,7 @@ void setup() {
    interval and check for auto-stop conditions.
 */
 void loop() {
+
   while (Serial.available() > 0) {
     // Read the next character
     chr = Serial.read();
